@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="Microsoft-Graph"
+         xmlns="http://www.mulesoft.org/schema/mule/module"
+        xmlns:mule="http://www.mulesoft.org/schema/mule/core"
+        xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+        xmlns:tns="http://www.mulesoft.org/schema/mule/microsoft-graph"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:http="http://www.mulesoft.org/schema/mule/http"
+        
+        xsi:schemaLocation="
+           http://www.mulesoft.org/schema/mule/module http://www.mulesoft.org/schema/mule/module/current/mule-module.xsd
+           http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+           http://www.mulesoft.org/schema/mule/microsoft-graph http://www.mulesoft.org/schema/mule/module-hello/current/mule-module-hello.xsd
+           http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+           http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+   
+<property name="GroupId" type="string"    order = "1"   tab = "Channel"  doc:description="GroupId"/>
+<property name="ChannelId" type="string"    order = "2"   tab = "Channel"  doc:description="ChannelId"/>
+
+<property name="Token" type="string"    order = "1"     doc:description="Token"/>
+
+	<http:request-config name="HTTP_Request_configuration_Teams"  basePath="/beta/teams/" >
+		<http:request-connection protocol="HTTPS" host="graph.microsoft.com" />
+	</http:request-config>
+ 
+
+    <operation name="MicrosoftGraph">
+        <parameters>
+            <parameter name="Operation" type="a-endpoint-type"  order = "1"/>
+            
+           
+               <parameter name="MessageId" use = "OPTIONAL" type="string" order = "2"/>
+               
+               <parameter name="Payload" type="string"   defaultValue = "#[payload]" order = "3"/>
+        </parameters>
+        
+  
+
+        <body>
+        
+         <mule:set-variable value= '#[output application/java
+---
+if(vars.Operation == "ALLMESSAGES" ) (vars.GroupId  ++ 
+
+ "/channels/" ++ vars.ChannelId  ++ "/messages")  else (vars.GroupId ++ 
+
+ "/channels/" ++ vars.ChannelId  ++
+ 
+  "/messages/" ++ vars.MessageId ++ "/replies")   ]' variableName="vReplyPath" /> 
+
+        
+            <http:request method='#[ output text/plain --- 
+        
+       {
+       "method" : if((vars.Operation == "ALLMESSAGES" ) or (vars.Operation == "SINGLEMESSAGE" )) "GET"  else "POST"
+       
+       
+       }.method 
+        ]'    config-ref="HTTP_Request_configuration_Teams" path="#[vars.vReplyPath]">
+        
+        <http:body ><![CDATA[#[vars.Payload]]]></http:body>
+				<http:headers ><![CDATA[#[output application/java
+---
+{
+	"Authorization" : vars.Token
+}]]]></http:headers>
+			</http:request>  </body>
+        <output type="any"/>
+    </operation>
+
+ </module>
